@@ -47,5 +47,7 @@ Set `RUST_LOG=debug` for verbose logging.
 
 ## Status
 
-Syslog ingestion (Apache → DuckDB) and the source-management UI are complete.
-Next up: Tera-based per-type dashboards. See [CHANGELOG.md](CHANGELOG.md).
+Syslog ingestion (Apache → DuckDB), the source-management UI, and the Apache
+dashboard (`/apache`) are complete. Dashboards run live SQL over the stored rows.
+Next up: more log types (each with its own dashboard) and log retention.
+See [CHANGELOG.md](CHANGELOG.md).

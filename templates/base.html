@@ -43,12 +43,14 @@
              padding:10px 14px; border-radius:8px; margin-bottom:18px; }
     .empty { color:var(--muted); padding:18px 0; }
   </style>
+  {% block head %}{% endblock %}
 </head>
 <body>
   <header>
     <span class="brand">EasyLog</span>
     <nav>
       <a href="/">Home</a>
+      <a href="/apache">Apache</a>
       <a href="/sources">Sources</a>
     </nav>
   </header>

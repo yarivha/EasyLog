@@ -22,6 +22,8 @@ use tokio::net::TcpListener;
 use crate::sources::{self, Source};
 use crate::state::AppState;
 
+mod apache;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // serve(state)
 // Binds the web port and serves the Axum app until the process is terminated.
@@ -33,6 +35,7 @@ pub async fn serve(state: Arc<AppState>) -> anyhow::Result<()> {
         .route("/health", get(health))
         .route("/sources", get(sources_page).post(add_source))
         .route("/sources/delete", post(delete_source))
+        .route("/apache", get(apache::dashboard))
         .route("/apache/recent", get(apache_recent))
         .with_state(state);
 

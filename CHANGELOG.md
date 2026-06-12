@@ -20,8 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   load into an in-memory routing map at startup and reload on every change, so
   edits take effect without a restart. Input is validated (valid IP, known log
   type, non-empty name).
-- Tera templating (`templates/base.html`, `index.html`, `sources.html`) and a
-  home page at `/`.
+- **Apache dashboard** (`GET /apache`): live DuckDB aggregations over the parsed
+  rows — KPI cards (requests, unique client IPs, bytes served, error rate),
+  a per-hour requests timeline (last 24h), an HTTP status-class breakdown, and
+  top-10 URLs and client IPs. Dependency-free, server-rendered CSS bar charts;
+  empty-state when no logs have arrived.
+- Tera templating (`templates/base.html`, `index.html`, `sources.html`,
+  `apache.html`) and a home page at `/`.
 - Temporary `GET /apache/recent` JSON endpoint for verifying ingestion.
 - `config/easylog.toml` (syslog/web ports, db path); overridable via
   `EASYLOG_CONFIG`.
