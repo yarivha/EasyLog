@@ -33,11 +33,13 @@ const CHANNEL_CAPACITY: usize = 100_000;
 // Maximum number of work items folded into a single write transaction.
 const BATCH_MAX: usize = 1024;
 
-// Target size for the UDP socket receive buffer (SO_RCVBUF). A bigger kernel
-// buffer gives the recv loop more slack to drain a burst before drops occur.
-// BSD/macOS charge a full mbuf cluster per datagram, so for small syslog packets
-// the survivable burst scales with this buffer. Requested best-effort; the OS
-// clamps it to its own ceiling (e.g. kern.ipc.maxsockbuf / net.core.rmem_max).
+// Target size for the UDP socket receive buffer. A bigger kernel buffer gives
+// the recv loop more slack to drain a burst before the kernel drops datagrams.
+// This is a secondary mitigation — the primary fix is decoupling receive from
+// write (above). On Linux a plain SO_RCVBUF request is clamped to
+// net.core.rmem_max (commonly ~208 KiB); we use SO_RCVBUFFORCE to bypass that
+// clamp when privileged (a :514 listener normally is), and the granted size is
+// logged at startup so an unprivileged deploy can see it must raise rmem_max.
 const UDP_RECV_BUFFER_BYTES: usize = 8 * 1024 * 1024;
 
 // Count of work items dropped because the channel was full. Used to emit a
@@ -110,13 +112,81 @@ async fn bind_udp(addr: &(String, u16)) -> Result<UdpSocket> {
         .with_context(|| format!("no address for syslog bind {}:{}", addr.0, addr.1))?;
 
     let sock = Socket::new(Domain::for_address(sock_addr), Type::DGRAM, Some(Protocol::UDP))?;
-    // Best-effort: the OS may clamp the request; log if it differs from asked.
-    if let Err(e) = sock.set_recv_buffer_size(UDP_RECV_BUFFER_BYTES) {
-        tracing::warn!("could not set UDP recv buffer to {UDP_RECV_BUFFER_BYTES}: {e}");
-    }
+    configure_recv_buffer(&sock);
     sock.set_nonblocking(true)?;
     sock.bind(&sock_addr.into())?;
     Ok(UdpSocket::from_std(sock.into())?)
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// configure_recv_buffer(sock)
+// Best-effort enlargement of the UDP receive buffer. On Linux a plain SO_RCVBUF
+// is clamped to net.core.rmem_max, so we first try SO_RCVBUFFORCE (bypasses the
+// clamp, needs CAP_NET_ADMIN — a privileged :514 listener has it) and fall back
+// to the portable setter otherwise. The size the kernel actually granted is
+// logged so an unprivileged deploy can tell its request was truncated. Never
+// fatal: a small buffer only weakens the secondary burst mitigation.
+// ─────────────────────────────────────────────────────────────────────────────
+fn configure_recv_buffer(sock: &Socket) {
+    // Linux: try the forced setter first; everywhere else go straight to the
+    // portable SO_RCVBUF. `forced` records whether the bypass succeeded.
+    let forced = {
+        #[cfg(target_os = "linux")]
+        {
+            set_recv_buffer_force(sock, UDP_RECV_BUFFER_BYTES).is_ok()
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            false
+        }
+    };
+
+    if !forced {
+        if let Err(e) = sock.set_recv_buffer_size(UDP_RECV_BUFFER_BYTES) {
+            tracing::warn!("could not set UDP recv buffer to {UDP_RECV_BUFFER_BYTES} bytes: {e}");
+        }
+    }
+
+    // Report what the kernel granted (Linux reports the doubled bookkeeping
+    // value). A figure far below the request means rmem_max needs raising.
+    match sock.recv_buffer_size() {
+        Ok(granted) => tracing::info!(
+            "UDP recv buffer: {} KiB granted (requested {} KiB{})",
+            granted / 1024,
+            UDP_RECV_BUFFER_BYTES / 1024,
+            if forced { ", forced" } else { "" },
+        ),
+        Err(e) => tracing::debug!("could not read back UDP recv buffer size: {e}"),
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// set_recv_buffer_force(sock, bytes) — Linux only
+// Sets SO_RCVBUFFORCE via a raw setsockopt, bypassing the net.core.rmem_max
+// clamp that limits the portable SO_RCVBUF. Returns the OS error (e.g. EPERM
+// when the process lacks CAP_NET_ADMIN) so the caller can fall back.
+// ─────────────────────────────────────────────────────────────────────────────
+#[cfg(target_os = "linux")]
+fn set_recv_buffer_force(sock: &Socket, bytes: usize) -> std::io::Result<()> {
+    use std::os::unix::io::AsRawFd;
+
+    let val = bytes as libc::c_int;
+    // SAFETY: `sock` owns a valid fd for the duration of this call; we pass a
+    // correctly sized c_int option value, as SO_RCVBUFFORCE expects.
+    let ret = unsafe {
+        libc::setsockopt(
+            sock.as_raw_fd(),
+            libc::SOL_SOCKET,
+            libc::SO_RCVBUFFORCE,
+            &val as *const libc::c_int as *const libc::c_void,
+            std::mem::size_of::<libc::c_int>() as libc::socklen_t,
+        )
+    };
+    if ret == 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::last_os_error())
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

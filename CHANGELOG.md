@@ -39,8 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   item onto a bounded `tokio::sync::mpsc` channel; a dedicated background writer
   task drains the channel and inserts rows in batched transactions (up to 1024
   items per `BEGIN/COMMIT`), amortizing the DB lock and per-statement commit
-  cost. The UDP socket is built via `socket2` with an enlarged receive buffer
-  (best-effort `SO_RCVBUF`, requested 8 MiB) as a secondary burst mitigation.
+  cost. As a secondary burst mitigation, the UDP socket is built via `socket2`
+  with an enlarged receive buffer: on Linux it uses `SO_RCVBUFFORCE` (bypasses
+  the `net.core.rmem_max` clamp; the privileged :514 listener has the required
+  capability) and falls back to portable `SO_RCVBUF`; the kernel-granted size is
+  logged at startup so an unprivileged deploy can see whether `rmem_max` must be
+  raised.
 
 ### Fixed
 - **UDP packet loss under bursts:** each datagram used to be inserted
@@ -48,9 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no-delay burst stalled the loop and the kernel dropped incoming datagrams
   (a ~29-packet burst could land 0 rows, while spacing sends 10 ms apart landed
   all of them). With receiving now decoupled from writing, the recv loop drains
-  the socket fast: a 500-packet no-delay burst lands all 500. Bursts beyond the
-  OS UDP socket-buffer ceiling are still subject to kernel-level drops (inherent
-  to UDP), but no longer to writer back-pressure.
+  the socket fast: a 500-packet no-delay burst lands all 500. Bursts large
+  enough to overflow the kernel UDP socket buffer are still subject to
+  kernel-level drops (inherent to UDP), but no longer to writer back-pressure.
 
 ## [0.1.0] — 2026-06-12
 
