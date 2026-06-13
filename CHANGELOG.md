@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Browser **favicon** matching the navbar mark (the `bi-stack` glyph in the brand
+  blue, an embedded SVG), served at `/static/favicon.svg` and `/favicon.ico`.
+
 ### Changed
 - **Single self-contained binary:** the web templates and static assets
   (Bootstrap + icons) are now compiled into the binary (`include_str!` /

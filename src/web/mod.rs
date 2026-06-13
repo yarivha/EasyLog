@@ -30,6 +30,7 @@ const BOOTSTRAP_CSS: &[u8] = include_bytes!("../../static/bootstrap.min.css");
 const BOOTSTRAP_JS: &[u8] = include_bytes!("../../static/bootstrap.bundle.min.js");
 const ICONS_CSS: &[u8] = include_bytes!("../../static/bootstrap-icons.css");
 const ICONS_FONT: &[u8] = include_bytes!("../../static/fonts/bootstrap-icons.woff2");
+const FAVICON: &[u8] = include_bytes!("../../static/favicon.svg");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // serve(state)
@@ -45,6 +46,7 @@ pub async fn serve(state: Arc<AppState>) -> anyhow::Result<()> {
         .route("/apache", get(apache::dashboard))
         .route("/apache/recent", get(apache_recent))
         .route("/static/{*path}", get(static_asset))
+        .route("/favicon.ico", get(favicon))
         .with_state(state);
 
     let addr = format!("0.0.0.0:{port}");
@@ -73,9 +75,19 @@ async fn static_asset(Path(path): Path<String>) -> Response {
         "bootstrap.bundle.min.js" => (BOOTSTRAP_JS, "text/javascript; charset=utf-8"),
         "bootstrap-icons.css" => (ICONS_CSS, "text/css; charset=utf-8"),
         "fonts/bootstrap-icons.woff2" => (ICONS_FONT, "font/woff2"),
+        "favicon.svg" => (FAVICON, "image/svg+xml"),
         _ => return StatusCode::NOT_FOUND.into_response(),
     };
     ([(header::CONTENT_TYPE, ctype)], bytes).into_response()
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /favicon.ico
+// Serves the embedded SVG favicon (the navbar's bi-stack mark) for browsers that
+// request /favicon.ico directly rather than honouring the <link rel="icon">.
+// ─────────────────────────────────────────────────────────────────────────────
+async fn favicon() -> Response {
+    ([(header::CONTENT_TYPE, "image/svg+xml")], FAVICON).into_response()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
