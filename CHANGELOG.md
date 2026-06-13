@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-06-13
+
 ### Fixed
 - **systemd unit failed to start (`status=217/USER`) in LXC/containers:** the unit
   used `DynamicUser=yes` and mount-namespace sandboxing, which are unreliable in
