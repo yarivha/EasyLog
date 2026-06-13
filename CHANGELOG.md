@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Rewrote `README.md` with a professional structure: features, architecture
+  diagram, package/source installation, configuration, usage (including Apache
+  log-forwarding via `logger`/`rsyslog`), an endpoints table, and a roadmap.
+
 ## [0.1.0] — 2026-06-12
 
 ### Added
