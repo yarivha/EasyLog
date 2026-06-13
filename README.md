@@ -27,13 +27,15 @@ parsed events in an embedded **DuckDB** column store, and serves a live
   dashboards run live analytical SQL over them, so new charts never need a
   re-ingest, and you can always drill down to the underlying log lines.
 - 📊 **Dashboard per log type** — KPI cards, request timelines, status-code
-  breakdowns, and top-N tables, rendered server-side.
+  breakdowns, and top-N tables, rendered server-side. **Click any client IP,
+  URL, or status code to drill down** — filters stack and are shareable by URL.
 - 🎛️ **Web-managed sources** — map a sending host to a log type from the UI; no
   config edits or restarts required.
-- 🎨 **Professional Bootstrap UI** — dark themed, responsive, and **fully
-  offline** (CSS/JS vendored, no CDN).
+- 🪶 **Single self-contained binary** — the web templates and static assets
+  (Bootstrap + icons) are compiled into the binary, so there's nothing to install
+  alongside it and it runs from any directory. Fully offline, no CDN.
 - 📦 **First-class packaging** — `.deb` and `.rpm` for **x86_64 and arm64**, with
-  a hardened systemd unit, built and published automatically on each tag.
+  a systemd unit, built and published automatically on each tag.
 
 The first supported log type is **Apache** (Combined Log Format).
 
@@ -86,8 +88,8 @@ The package installs:
 | `/usr/lib/systemd/system/easylog.service` | systemd unit |
 | `/var/lib/easylog/` | DuckDB database (created at runtime) |
 
-The service runs as a transient unprivileged user (`DynamicUser`) and is granted
-`CAP_NET_BIND_SERVICE` so it can bind port 514 without root. Then open
+The service runs as root (standard for a syslog collector binding port 514), with
+a private `StateDirectory` for the database and `NoNewPrivileges` set. Then open
 `http://<host>:3000/`.
 
 ### From source
@@ -100,6 +102,9 @@ cd EasyLog
 cargo build --release
 ./target/release/easylog
 ```
+
+The binary is self-contained — templates and web assets are compiled in, so you
+can copy `target/release/easylog` anywhere and run it without any other files.
 
 ## Configuration
 
