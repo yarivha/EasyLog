@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `StateDirectory` + `NoNewPrivileges`, so it starts portably across hosts and
   containers.
 
+### Added
+- `examples/rsyslog/apache-access.conf` — ready-to-edit rsyslog config for
+  forwarding Apache access logs to EasyLog (also shipped in the deb/rpm under
+  `/usr/share/doc/easylog/examples/`).
+
 ### Changed
 - Rewrote `README.md` with a professional structure: features, architecture
   diagram, package/source installation, configuration, usage (including Apache

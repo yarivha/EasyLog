@@ -135,14 +135,18 @@ the access log through `logger`:
 CustomLog "|/usr/bin/logger -n EASYLOG_HOST -P 514 -d -t apache --rfc3164" combined
 ```
 
-…or have `rsyslog` tail the file and forward it (`/etc/rsyslog.d/60-easylog.conf`):
+…or have `rsyslog` tail the access log and forward it. A ready-to-edit config is
+provided at [`examples/rsyslog/apache-access.conf`](examples/rsyslog/apache-access.conf)
+(also installed by the package under `/usr/share/doc/easylog/examples/`):
 
-```rsyslog
-module(load="imfile")
-input(type="imfile" File="/var/log/apache2/access.log"
-      Tag="apache" Facility="local0" Severity="info")
-local0.* @EASYLOG_HOST:514        # @ = UDP, @@ = TCP
+```sh
+sudo cp examples/rsyslog/apache-access.conf /etc/rsyslog.d/60-easylog.conf
+# edit EASYLOG_IP + the File= path inside, then:
+sudo rsyslogd -N1 && sudo systemctl restart rsyslog
 ```
+
+Whichever method you use, then register the sending host's IP as an `apache`
+source at `http://<host>:3000/sources` — EasyLog routes incoming logs by source IP.
 
 ### 3. View the dashboard
 

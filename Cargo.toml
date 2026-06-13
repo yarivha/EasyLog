@@ -51,6 +51,7 @@ assets = [
     ["packaging/easylog.toml", "etc/easylog/easylog.toml", "644"],
     ["packaging/easylog.service", "usr/lib/systemd/system/easylog.service", "644"],
     ["README.md", "usr/share/doc/easylog/README.md", "644"],
+    ["examples/rsyslog/apache-access.conf", "usr/share/doc/easylog/examples/rsyslog/apache-access.conf", "644"],
 ]
 
 # .rpm via `cargo generate-rpm` (cargo-generate-rpm). Same payload as the .deb.
@@ -70,4 +71,5 @@ assets = [
     { source = "packaging/easylog.toml", dest = "/etc/easylog/easylog.toml", mode = "644", config = true },
     { source = "packaging/easylog.service", dest = "/usr/lib/systemd/system/easylog.service", mode = "644" },
     { source = "README.md", dest = "/usr/share/doc/easylog/README.md", mode = "644", doc = true },
+    { source = "examples/rsyslog/apache-access.conf", dest = "/usr/share/doc/easylog/examples/rsyslog/apache-access.conf", mode = "644", doc = true },
 ]
